@@ -1,33 +1,25 @@
-# WordPress Core
+# WordPress core — ignore everything at root, whitelist what we want
 /wp-admin/
 /wp-includes/
+/wp-*.php
 /index.php
-/wp-load.php
-/wp-login.php
-/wp-settings.php
-/wp-config.php
+/license.txt
+/readme.html
+/xmlrpc.php
+/tmp/
 
-# WordPress Database & Uploads
+# Database & uploads
 wp-content/uploads/
 *.sqlite
 wp-content/db.php
 
-# Third-party Plugins (install via WordPress admin)
+# Third-party plugins & themes
 wp-content/plugins/*
-!wp-content/plugins/.gitkeep
-
-# Themes (except custom ones)
 wp-content/themes/*
-!wp-content/themes/verdant-harvest
-!wp-content/themes/.gitkeep
+!wp-content/themes/verdant-harvest/
 
 # OS & IDE
 .DS_Store
 .vscode/
 node_modules/
 .env
-.env.local
-
-# WordPress temp files
-wp-content/cache/
-wp-content/backup-*

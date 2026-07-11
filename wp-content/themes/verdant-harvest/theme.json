@@ -1,0 +1,130 @@
+{
+	"$schema": "https://schemas.wp.org/wp/6.7/theme.json",
+	"version": 3,
+	"settings": {
+		"appearanceTools": true,
+		"useRootPaddingAwareAlignments": true,
+		"layout": {
+			"contentSize": "720px",
+			"wideSize": "1200px"
+		},
+		"color": {
+			"palette": [
+				{ "slug": "base", "color": "#faf6ee", "name": "Parchment" },
+				{ "slug": "base-2", "color": "#f0e9d8", "name": "Warm Sand" },
+				{ "slug": "contrast", "color": "#20301f", "name": "Deep Forest" },
+				{ "slug": "primary", "color": "#3a5a34", "name": "Field Green" },
+				{ "slug": "secondary", "color": "#8aa06a", "name": "Sage" },
+				{ "slug": "accent", "color": "#c8622d", "name": "Terracotta" },
+				{ "slug": "accent-2", "color": "#e8a13a", "name": "Honey" }
+			],
+			"custom": false,
+			"defaultPalette": false,
+			"defaultGradients": false
+		},
+		"typography": {
+			"fluid": true,
+			"fontFamilies": [
+				{
+					"fontFamily": "\"Fraunces\", Georgia, serif",
+					"slug": "display",
+					"name": "Fraunces",
+					"fontFace": [
+						{
+							"fontFamily": "Fraunces",
+							"fontWeight": "400 700",
+							"fontStyle": "normal",
+							"src": [ "file:./assets/fonts/fraunces.woff2" ]
+						},
+						{
+							"fontFamily": "Fraunces",
+							"fontWeight": "400 700",
+							"fontStyle": "italic",
+							"src": [ "file:./assets/fonts/fraunces-italic.woff2" ]
+						}
+					]
+				},
+				{
+					"fontFamily": "\"DM Sans\", system-ui, sans-serif",
+					"slug": "body",
+					"name": "DM Sans",
+					"fontFace": [
+						{
+							"fontFamily": "DM Sans",
+							"fontWeight": "400 700",
+							"fontStyle": "normal",
+							"src": [ "file:./assets/fonts/dm-sans.woff2" ]
+						}
+					]
+				}
+			],
+			"fontSizes": [
+				{ "slug": "small", "size": "0.9rem", "name": "Small" },
+				{ "slug": "medium", "size": "1.125rem", "name": "Medium" },
+				{ "slug": "large", "size": "clamp(1.5rem, 1.2rem + 1.5vw, 2rem)", "name": "Large" },
+				{ "slug": "x-large", "size": "clamp(2.25rem, 1.7rem + 2.75vw, 3.5rem)", "name": "Extra Large" },
+				{ "slug": "xx-large", "size": "clamp(3rem, 2rem + 5vw, 5.5rem)", "name": "Huge" }
+			]
+		},
+		"spacing": {
+			"units": [ "px", "rem", "%", "vw", "vh" ],
+			"spacingSizes": [
+				{ "slug": "20", "size": "1rem", "name": "1" },
+				{ "slug": "30", "size": "1.5rem", "name": "2" },
+				{ "slug": "40", "size": "2.5rem", "name": "3" },
+				{ "slug": "50", "size": "4rem", "name": "4" },
+				{ "slug": "60", "size": "6rem", "name": "5" },
+				{ "slug": "70", "size": "8rem", "name": "6" }
+			]
+		}
+	},
+	"styles": {
+		"color": {
+			"background": "var(--wp--preset--color--base)",
+			"text": "var(--wp--preset--color--contrast)"
+		},
+		"typography": {
+			"fontFamily": "var(--wp--preset--font-family--body)",
+			"fontSize": "var(--wp--preset--font-size--medium)",
+			"lineHeight": "1.7"
+		},
+		"elements": {
+			"heading": {
+				"typography": {
+					"fontFamily": "var(--wp--preset--font-family--display)",
+					"fontWeight": "600",
+					"lineHeight": "1.1"
+				}
+			},
+			"link": {
+				"color": { "text": "var(--wp--preset--color--primary)" },
+				"typography": { "textDecoration": "none" }
+			},
+			"button": {
+				"color": {
+					"background": "var(--wp--preset--color--accent)",
+					"text": "var(--wp--preset--color--base)"
+				},
+				"typography": {
+					"fontFamily": "var(--wp--preset--font-family--body)",
+					"fontWeight": "600",
+					"fontSize": "1rem"
+				},
+				"border": { "radius": "999px" },
+				"spacing": {
+					"padding": {
+						"top": "0.9rem", "bottom": "0.9rem",
+						"left": "2rem", "right": "2rem"
+					}
+				}
+			}
+		},
+		"spacing": {
+			"blockGap": "1.5rem"
+		}
+	},
+	"templateParts": [
+		{ "name": "header", "title": "Header", "area": "header" },
+		{ "name": "footer", "title": "Footer", "area": "footer" }
+	]
+}

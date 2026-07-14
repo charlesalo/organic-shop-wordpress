@@ -11,12 +11,20 @@ Text Domain: verdant-harvest
 Tags: full-site-editing, block-patterns, block-styles, wide-blocks, accessibility-ready, style-variations
 */
 
-/* WordPress inserts margin-block-start: var(--wp--style--block-gap) between the
-   template's top-level sections (header part, main, footer part) — a gap that
-   exists even when no markup asks for it. Zero it so sections butt edge-to-edge
-   and own their vertical rhythm via padding; this does not affect block gaps
-   inside nested layouts. */
-.wp-site-blocks > * + * {
+/* WordPress inserts margin-block-start: var(--wp--style--block-gap) between
+   stacked top-level blocks in a constrained layout — a gap that exists even
+   when no markup asks for it. This shows up at two levels here: between the
+   template's top-level sections (header part, main, footer part), AND between
+   the full-bleed sections stacked inside page/post content (products, story,
+   testimonials, newsletter, etc. all live one level deeper, inside .entry-content
+   within <main>). Left unzeroed, that extra margin creates a visible seam of
+   base background color between adjacent full-width sections that already carry
+   their own vertical padding. Zero it at both levels so sections butt
+   edge-to-edge and rely only on their own padding for vertical rhythm; this
+   does not affect block gaps inside nested layouts (columns, buttons, etc). */
+.wp-site-blocks > * + *,
+main.wp-block-group > * + *,
+.entry-content > * + * {
 	margin-block-start: 0;
 }
 
@@ -28,6 +36,55 @@ Tags: full-site-editing, block-patterns, block-styles, wide-blocks, accessibilit
 	--vh-sage: var( --wp--preset--color--secondary );
 	--vh-clay: var( --wp--preset--color--accent );
 	--vh-honey: var( --wp--preset--color--accent-2 );
+
+	/* Sitewide vertical section rhythm. "Standard" = full sections (products,
+	   categories, story, testimonials, newsletter wrapper, page head/content,
+	   footer top). "Compact" = smaller decorative/nested elements (marquee
+	   strip, the newsletter's inner card) that intentionally use less space. */
+	--vh-section-padding-y: 96px;
+	--vh-section-padding-y-compact: 48px;
+}
+@media ( max-width: 781px ) {
+	:root {
+		--vh-section-padding-y: 64px;
+		--vh-section-padding-y-compact: 32px;
+	}
+}
+
+/* === section vertical rhythm === */
+.vh-products,
+.vh-categories,
+.vh-story,
+.vh-testimonials,
+.vh-newsletter-section,
+.vh-page-head,
+.vh-page-content {
+	padding-top: var( --vh-section-padding-y );
+	padding-bottom: var( --vh-section-padding-y );
+}
+.vh-footer {
+	padding-top: var( --vh-section-padding-y );
+}
+.vh-marquee,
+.vh-newsletter {
+	padding-top: var( --vh-section-padding-y-compact );
+	padding-bottom: var( --vh-section-padding-y-compact );
+}
+
+/* === buttons === */
+/* Global hover for filled buttons (default "fill" style uses the terracotta
+   accent as background — hero CTA, shop-loop "Add to cart", etc). Targets
+   .wp-element-button, the inner element WordPress applies button styling to,
+   so it covers every button block plus WooCommerce's block-based add-to-cart
+   button without needing per-instance rules. More specific hover rules
+   (e.g. the hero outline button, newsletter button) still win by specificity. */
+.wp-element-button {
+	transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+.wp-element-button:hover {
+	background-color: var( --vh-green );
+	transform: translateY( -2px );
+	box-shadow: 0 10px 24px -8px color-mix( in srgb, var( --vh-green ) 55%, transparent );
 }
 
 /* === base === */
@@ -140,7 +197,6 @@ h1, h2, h3, h4 {
 	background: var( --vh-clay );
 	color: var( --vh-bg );
 	overflow: hidden;
-	padding-block: 0.85rem;
 }
 .vh-marquee__track {
 	gap: 3rem;
@@ -449,12 +505,15 @@ h1, h2, h3, h4 {
 	border-radius: 999px;
 	font-weight: 600;
 	padding: 0.8rem 1.8rem;
+	transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 .woocommerce #respond input#submit:hover,
 .woocommerce a.button:hover,
 .woocommerce button.button:hover,
 .woocommerce .single_add_to_cart_button:hover {
 	background: var( --vh-green );
+	transform: translateY( -2px );
+	box-shadow: 0 10px 24px -8px color-mix( in srgb, var( --vh-green ) 55%, transparent );
 }
 .wp-block-woocommerce-breadcrumbs {
 	font-size: 0.85rem;
@@ -470,6 +529,292 @@ h1, h2, h3, h4 {
 	font-family: var( --wp--preset--font-family--display );
 	color: var( --vh-green );
 }
+
+/* === shop archive === */
+.vh-shop-page {
+	padding-top: 2.5rem;
+	padding-bottom: var( --vh-section-padding-y );
+}
+.vh-shop-toolbar {
+	padding-inline: var( --wp--preset--spacing--30 );
+	margin-bottom: 2rem;
+}
+.vh-shop-toolbar > .wp-block-group {
+	width: 100%;
+	gap: 1rem;
+}
+/* search bar. Scoped under .vh-shop-toolbar (not just .vh-shop-search) so
+   it keeps working even if the search block's own className attribute is
+   ever dropped — core's block-library CSS for these classes is written
+   with zero-specificity :where() wrappers, so any plain class selector
+   here already wins without needing !important. */
+.vh-shop-toolbar .wp-block-search {
+	flex: 1 1 320px;
+	max-width: 480px;
+}
+.vh-shop-toolbar .wp-block-search__inside-wrapper {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+}
+.vh-shop-toolbar .wp-block-search__input {
+	/* input[type="search"] gets native OS search-field chrome in
+	   Chrome/Safari that ignores border-radius unless appearance is
+	   reset — without this it renders as a plain square-cornered box. */
+	appearance: none;
+	-webkit-appearance: none;
+	flex: 1 1 auto;
+	min-width: 0;
+	border: 1px solid color-mix( in srgb, var( --vh-ink ) 14%, transparent );
+	border-radius: 999px;
+	background: var( --vh-bg );
+	color: var( --vh-ink );
+	font-family: var( --wp--preset--font-family--body );
+	font-size: 0.95rem;
+	padding: 0.75rem 1.3rem;
+}
+.vh-shop-toolbar .wp-block-search__input:focus {
+	outline: none;
+	border-color: var( --vh-green );
+}
+.vh-shop-toolbar .wp-block-search__button {
+	flex-shrink: 0;
+	border-radius: 999px;
+	border: none;
+	padding: 0.75rem 1.6rem;
+	background: var( --vh-clay );
+	color: var( --vh-bg );
+	font-family: var( --wp--preset--font-family--body );
+	font-weight: 600;
+	font-size: 0.9rem;
+	white-space: nowrap;
+	transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+.vh-shop-toolbar .wp-block-search__button:hover {
+	background: var( --vh-green );
+	transform: translateY( -2px );
+	box-shadow: 0 10px 24px -8px color-mix( in srgb, var( --vh-green ) 55%, transparent );
+}
+/* layout: sidebar + content */
+.vh-shop-layout {
+	padding-inline: var( --wp--preset--spacing--30 );
+}
+.vh-shop-layout > .wp-block-group {
+	width: 100%;
+	align-items: flex-start;
+	gap: 2.5rem;
+}
+.vh-shop-sidebar {
+	flex: 0 0 260px;
+	width: 260px;
+	position: sticky;
+	top: 100px;
+	background: var( --vh-sand );
+	border-radius: 20px;
+	padding: 1.6rem;
+}
+.vh-shop-content {
+	flex: 1 1 0%;
+	min-width: 0;
+}
+.vh-shop-sidebar__heading {
+	font-size: 1.1rem;
+	color: var( --vh-green );
+	margin-bottom: 1.2rem;
+}
+/* category pills. The "All Products" pill (.vh-cat-pill) puts icon+name+count
+   all inside one <a>, but WooCommerce's product-categories block renders the
+   count as a sibling *after* the <a>, not nested inside it — so the <li>
+   itself has to be the pill/flex container for the dynamic list, with the
+   <a> as just one flex child alongside the count badge. */
+.vh-cat-pill {
+	list-style: none;
+	margin: 0 0 0.6rem;
+}
+.vh-cat-pill a {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	background: var( --vh-bg );
+	border-radius: 999px;
+	padding: 0.5rem 0.6rem;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var( --vh-ink );
+	transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.vh-cat-pill a:hover {
+	background: var( --vh-green );
+	color: var( --vh-bg );
+	transform: translateX( 3px );
+}
+/* WooCommerce ships .wc-block-product-categories-list--has-images
+   .wc-block-product-categories-list-item(__image) rules from its legacy
+   floated-image widget design (60px negative margins etc.) at two-class
+   specificity — matching that specificity here (via the .vh-cat-list
+   wrapper) and adding !important on the properties it sets is what
+   actually overrides it; a bare one-class selector silently loses. */
+.vh-cat-list .wc-block-product-categories-list-item {
+	list-style: none;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin: 0 0 0.6rem !important;
+	background: var( --vh-bg );
+	border-radius: 999px;
+	padding: 0.5rem 0.6rem;
+	clear: none !important;
+	transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.vh-cat-list .wc-block-product-categories-list-item:hover {
+	background: var( --vh-green );
+	transform: translateX( 3px );
+}
+.vh-cat-list .wc-block-product-categories-list-item > a {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var( --vh-ink );
+}
+.vh-cat-list .wc-block-product-categories-list-item:hover > a {
+	color: var( --vh-bg );
+}
+.vh-cat-pill__icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	border-radius: 50%;
+	background: var( --vh-sage );
+	font-size: 1rem;
+	flex-shrink: 0;
+}
+.vh-cat-list .wc-block-product-categories-list-item__image {
+	display: flex !important;
+	width: 34px !important;
+	height: 34px !important;
+	max-width: none !important;
+	margin: 0 !important;
+	border: none !important;
+	position: static !important;
+	border-radius: 50%;
+	overflow: hidden;
+	flex-shrink: 0;
+}
+.vh-cat-list .wc-block-product-categories-list-item__image img {
+	display: block !important;
+	width: 100% !important;
+	height: 100% !important;
+	max-width: none !important;
+	margin: 0 !important;
+	object-fit: cover;
+}
+.vh-cat-pill__name,
+.wc-block-product-categories-list-item__name {
+	flex: 1 1 auto;
+}
+.vh-cat-pill__count,
+.wc-block-product-categories-list-item-count {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 1.6rem;
+	height: 1.6rem;
+	padding-inline: 0.4rem;
+	border-radius: 999px;
+	background: color-mix( in srgb, var( --vh-ink ) 8%, transparent );
+	color: var( --vh-ink );
+	font-size: 0.78rem;
+	font-weight: 700;
+}
+.vh-cat-pill a:hover .vh-cat-pill__count,
+.wc-block-product-categories-list-item:hover .wc-block-product-categories-list-item-count {
+	background: color-mix( in srgb, var( --vh-bg ) 25%, transparent );
+	color: var( --vh-bg );
+}
+.wc-block-product-categories-list {
+	margin: 0;
+	padding: 0;
+}
+/* .vh-shop-products also carries .vh-products for its card styling, but
+   that class's padding-top/bottom is meant for full-bleed homepage
+   sections — zero it here so the grid's top edge lines up with the
+   sidebar instead of sitting 96px below it. */
+.vh-shop-products {
+	padding-top: 0;
+	padding-bottom: 0;
+	margin-bottom: 0 !important;
+}
+/* WooCommerce's own flex-basis math (calc(25% - 0.9375em) etc.) assumes
+   its own smaller default gap, so overriding just the gap breaks its column
+   count via unwanted wrapping. Take over layout entirely with CSS grid;
+   column counts are set in the responsive breakpoints below, after the
+   sitewide .vh-products column rules, so they win the specificity tie
+   (equal selectors, later source order). */
+.vh-shop-products .wc-block-product-template {
+	display: grid !important;
+	gap: 1.8rem !important;
+}
+.vh-shop-products .wc-block-product-template > li {
+	width: auto !important;
+}
+.vh-shop-products .wc-block-components-product-rating {
+	margin: 0.3rem 0;
+}
+.vh-shop-products .wc-block-components-product-rating__stars {
+	color: var( --vh-honey );
+	--wc-blocks-star-rating: var( --vh-honey );
+}
+/* A single page of results still renders the pagination nav, just with no
+   previous/numbers/next links inside (each of those sub-blocks omits itself
+   when there's nothing to link to) — its wrapper isn't truly DOM-:empty
+   (whitespace text nodes from the saved block markup), so detect "nothing
+   to show" via the presence of an actual page link instead. */
+.vh-shop-pagination:not( :has( a ) ) {
+	display: none;
+}
+.vh-shop-pagination {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 0.75rem;
+	margin-top: 3rem;
+}
+.vh-shop-pagination .wp-block-query-pagination-numbers,
+.vh-shop-pagination .wp-block-query-pagination-previous,
+.vh-shop-pagination .wp-block-query-pagination-next {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+.vh-shop-pagination a,
+.vh-shop-pagination .page-numbers {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 2.2rem;
+	height: 2.2rem;
+	padding-inline: 0.5rem;
+	border-radius: 999px;
+	color: var( --vh-ink );
+	font-weight: 600;
+	font-size: 0.9rem;
+	transition: background-color 0.2s ease, color 0.2s ease;
+}
+.vh-shop-pagination a:hover {
+	background: var( --vh-green );
+	color: var( --vh-bg );
+}
+.vh-shop-pagination .page-numbers.current {
+	background: var( --vh-clay );
+	color: var( --vh-bg );
+}
 /* === responsive === */
 @media ( max-width: 781px ) {
 	.vh-hero .wp-block-cover__inner-container {
@@ -477,6 +822,17 @@ h1, h2, h3, h4 {
 	}
 	.vh-cat-card {
 		min-height: 220px;
+	}
+}
+/* Categories grid: 5 cards wrap to 2-up on tablet instead of squeezing into
+   one row; core columns already stack to 1-up below 599px. */
+@media ( min-width: 600px ) and ( max-width: 1023px ) {
+	.vh-categories .wp-block-columns {
+		flex-wrap: wrap;
+	}
+	.vh-categories .wp-block-columns > .wp-block-column {
+		flex-basis: calc( 50% - 0.75rem ) !important;
+		flex-grow: 0;
 	}
 }
 
@@ -516,6 +872,42 @@ h1, h2, h3, h4 {
 		grid-template-columns: repeat( 3, 1fr ) !important;
 	}
 }
+/* Shop catalogue grid overrides the sitewide 3-up desktop default with 4
+   columns; same selector specificity as the rule above, so source order
+   (this comes after) settles the tie in the shop grid's favor. */
+@media ( min-width: 1024px ) {
+	.vh-shop-products .wc-block-product-template {
+		grid-template-columns: repeat( 4, 1fr ) !important;
+	}
+}
+/* Shop sidebar + content stack on tablet/mobile instead of sitting side by side. */
+@media ( max-width: 1023px ) {
+	.vh-shop-layout > .wp-block-group {
+		flex-wrap: wrap;
+	}
+	.vh-shop-sidebar {
+		position: static;
+		width: 100%;
+		flex: 1 1 100%;
+	}
+	.vh-cat-list .wc-block-product-categories-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.6rem;
+	}
+	.vh-cat-list .wc-block-product-categories-list-item {
+		margin: 0;
+	}
+}
+@media ( max-width: 599px ) {
+	.vh-shop-toolbar > .wp-block-group {
+		flex-direction: column;
+		align-items: stretch;
+	}
+	.vh-shop-toolbar .wp-block-search {
+		max-width: 100%;
+	}
+}
 /* === motion === */
 @keyframes vh-marquee-scroll {
 	from { transform: translateX( 0 ); }
@@ -527,6 +919,10 @@ h1, h2, h3, h4 {
 .vh-reveal {
 	transition: opacity 0.7s ease, transform 0.7s cubic-bezier(.2,.8,.2,1);
 }
+.vh-reveal.vh-pending {
+	opacity: 0;
+	transform: translateY(26px);
+}
 .vh-reveal.vh-in {
 	opacity: 1;
 	transform: none;
@@ -535,4 +931,18 @@ h1, h2, h3, h4 {
 	.vh-marquee__track { animation: none; }
 	.vh-reveal { transition: none; opacity: 1 !important; transform: none !important; }
 	* { scroll-behavior: auto !important; }
+	.wp-element-button,
+	.woocommerce #respond input#submit,
+	.woocommerce a.button,
+	.woocommerce button.button,
+	.woocommerce .single_add_to_cart_button {
+		transition: none;
+	}
+	.wp-element-button:hover,
+	.woocommerce #respond input#submit:hover,
+	.woocommerce a.button:hover,
+	.woocommerce button.button:hover,
+	.woocommerce .single_add_to_cart_button:hover {
+		transform: none;
+	}
 }

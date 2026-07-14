@@ -19,11 +19,13 @@
 	}
 
 	// Scroll-reveal: JS applies the hidden initial state so the editor
-	// (no JS) always shows elements in their final visible state.
+	// (no JS) always shows elements in their final visible state. Uses a
+	// class rather than inline styles so the .vh-in CSS rule (added on
+	// intersect) can override it via normal cascade order — an inline
+	// style can never be beaten by a class-based rule.
 	var revealers = document.querySelectorAll( '.vh-reveal' );
 	revealers.forEach( function ( el ) {
-		el.style.opacity = '0';
-		el.style.transform = 'translateY(26px)';
+		el.classList.add( 'vh-pending' );
 	} );
 
 	if ( 'IntersectionObserver' in window ) {

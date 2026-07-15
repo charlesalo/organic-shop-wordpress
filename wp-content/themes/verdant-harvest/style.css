@@ -37,6 +37,12 @@ main.wp-block-group > * + *,
 	--vh-clay: var( --wp--preset--color--accent );
 	--vh-honey: var( --wp--preset--color--accent-2 );
 
+	/* Cart icon for the single-product "Add to Cart" button, as a mask
+	   image so it can be tinted with currentColor instead of a fixed
+	   SVG fill — needed since the button switches from green to cream
+	   text on hover. */
+	--vh-cart-icon: url( "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='21' r='1'/%3E%3Ccircle cx='20' cy='21' r='1'/%3E%3Cpath d='M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6'/%3E%3C/svg%3E" );
+
 	/* Sitewide vertical section rhythm. "Standard" = full sections (products,
 	   categories, story, testimonials, newsletter wrapper, page head/content,
 	   footer top). "Compact" = smaller decorative/nested elements (marquee
@@ -528,6 +534,312 @@ h1, h2, h3, h4 {
 .vh-shop-wrap h1 {
 	font-family: var( --wp--preset--font-family--display );
 	color: var( --vh-green );
+}
+
+/* === single product === */
+.vh-product-page {
+	padding-top: 2.5rem;
+}
+.vh-product-top {
+	padding-inline: var( --wp--preset--spacing--30 );
+	padding-bottom: var( --vh-section-padding-y );
+}
+.vh-product-top .wp-block-woocommerce-breadcrumbs {
+	margin-bottom: 2rem;
+}
+.vh-product-columns {
+	gap: 3rem !important;
+	margin-bottom: var( --vh-section-padding-y-compact );
+}
+/* gallery */
+.vh-product-gallery-col .woocommerce-product-gallery__wrapper {
+	margin: 0;
+}
+.vh-product-gallery-col .woocommerce-product-gallery__image,
+.vh-product-gallery-col .woocommerce-product-gallery__image img {
+	border-radius: 20px;
+}
+.vh-product-gallery-col .woocommerce-product-gallery__image {
+	overflow: hidden;
+	background: var( --vh-sand );
+}
+.vh-product-gallery-col .flex-control-thumbs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	margin-top: 1rem;
+	padding: 0;
+	list-style: none;
+}
+.vh-product-gallery-col .flex-control-thumbs li {
+	width: 72px;
+}
+.vh-product-gallery-col .flex-control-thumbs img {
+	border-radius: 12px;
+	aspect-ratio: 1;
+	object-fit: cover;
+	cursor: pointer;
+	opacity: 0.6;
+	transition: opacity 0.2s ease;
+}
+.vh-product-gallery-col .flex-control-thumbs img.flex-active,
+.vh-product-gallery-col .flex-control-thumbs img:hover {
+	opacity: 1;
+}
+/* details column */
+.vh-product-details-col .wp-block-post-title {
+	font-family: var( --wp--preset--font-family--display );
+	color: var( --vh-green );
+	font-size: clamp( 2rem, 1.5rem + 2vw, 3rem );
+	line-height: 1.05;
+	margin-bottom: 0.75rem;
+}
+.vh-product-details-col .wc-block-components-product-rating {
+	margin-bottom: 0.75rem;
+}
+.vh-product-details-col .wc-block-components-product-rating__stars {
+	color: var( --vh-honey );
+	--wc-blocks-star-rating: var( --vh-honey );
+}
+.vh-product-details-col .wc-block-components-product-price {
+	color: var( --vh-clay );
+	font-weight: 600;
+	margin-bottom: 1.25rem;
+}
+.vh-product-excerpt {
+	color: color-mix( in srgb, var( --vh-ink ) 75%, transparent );
+	font-size: 1.05rem;
+	line-height: 1.6;
+	max-width: 48ch;
+	margin-bottom: 1.75rem;
+}
+/* add to cart: quantity stepper + total box + button. The .vh-add-to-cart
+   className (set on the woocommerce/add-to-cart-with-options block) lands
+   on its outer wrapper; the actual flex row is the custom template part's
+   own .vh-add-to-cart-row group nested inside it — see
+   parts/simple-product-add-to-cart-with-options.html. */
+.vh-add-to-cart {
+	margin-bottom: 1.5rem;
+}
+.vh-add-to-cart-row {
+	align-items: flex-end;
+	gap: 1.25rem !important;
+}
+.vh-field {
+	gap: 0.5rem !important;
+}
+.vh-field__label {
+	margin: 0;
+	font-family: var( --wp--preset--font-family--body );
+	font-size: 0.95rem;
+	font-weight: 500;
+	color: color-mix( in srgb, var( --vh-ink ) 70%, transparent );
+}
+.vh-add-to-cart .quantity {
+	margin: 0;
+}
+/* stepper: a single rounded box for the number, with a small up/down
+   chevron stack attached to its right edge rather than arrows glued
+   inside the native number input. */
+.vh-add-to-cart .wc-block-components-quantity-selector {
+	position: relative;
+	display: inline-block;
+}
+.vh-add-to-cart .wc-block-components-quantity-selector__input {
+	width: 6rem;
+	height: 3.4rem;
+	border: 1px solid color-mix( in srgb, var( --vh-ink ) 18%, transparent );
+	border-radius: 12px;
+	background: var( --vh-bg );
+	color: var( --vh-ink );
+	font-family: var( --wp--preset--font-family--body );
+	font-size: 1.05rem;
+	text-align: center;
+	padding: 0 2.2rem 0 0.5rem;
+	/* input[type=number]'s native spinner arrows — replaced by the
+	   .wc-block-components-quantity-selector__button steppers below. */
+	appearance: none;
+	-webkit-appearance: none;
+	-moz-appearance: textfield;
+}
+.vh-add-to-cart .wc-block-components-quantity-selector__input::-webkit-inner-spin-button,
+.vh-add-to-cart .wc-block-components-quantity-selector__input::-webkit-outer-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+.vh-add-to-cart .wc-block-components-quantity-selector__input:focus {
+	outline: none;
+	border-color: var( --vh-green );
+}
+.vh-add-to-cart .wc-block-components-quantity-selector__button {
+	position: absolute;
+	right: 0.4rem;
+	width: 1.6rem;
+	height: 1.3rem;
+	border-radius: 5px;
+	background: var( --vh-sand );
+	color: transparent;
+	transition: background-color 0.2s ease;
+}
+/* Centered via absolute positioning + transform rather than flex — a
+   zero-size, border-only triangle is unreliable to center with flex
+   alignment alone. */
+.vh-add-to-cart .wc-block-components-quantity-selector__button::after {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate( -50%, -50% );
+	width: 0;
+	height: 0;
+	border-left: 4px solid transparent;
+	border-right: 4px solid transparent;
+}
+.vh-add-to-cart .wc-block-components-quantity-selector__button--plus {
+	top: 0.35rem;
+}
+.vh-add-to-cart .wc-block-components-quantity-selector__button--plus::after {
+	border-bottom: 5px solid var( --vh-green );
+}
+.vh-add-to-cart .wc-block-components-quantity-selector__button--minus {
+	bottom: 0.35rem;
+}
+.vh-add-to-cart .wc-block-components-quantity-selector__button--minus::after {
+	border-top: 5px solid var( --vh-green );
+}
+.vh-add-to-cart .wc-block-components-quantity-selector__button:hover:not( :disabled ) {
+	background: var( --vh-green );
+}
+.vh-add-to-cart .wc-block-components-quantity-selector__button:hover:not( :disabled )::after {
+	border-bottom-color: var( --vh-bg );
+	border-top-color: var( --vh-bg );
+}
+.vh-add-to-cart .wc-block-components-quantity-selector__button:disabled {
+	opacity: 0.35;
+	cursor: default;
+}
+/* total box */
+.vh-line-total {
+	display: flex;
+	align-items: center;
+	background: var( --vh-sand );
+	border-radius: 12px;
+	padding: 0.8rem 1.3rem;
+	margin: 0;
+	height: 3.4rem;
+	box-sizing: border-box;
+}
+.vh-line-total__amount {
+	font-family: var( --wp--preset--font-family--body );
+	font-size: 1rem;
+	font-weight: 700;
+	color: var( --vh-clay );
+}
+/* Add to Cart: primary filled terracotta button with a cart icon, matching
+   the "Add to cart" buttons used elsewhere (shop grid, related products) —
+   scoped to this row only. */
+.vh-add-to-cart .single_add_to_cart_button {
+	display: inline-flex !important;
+	align-items: center;
+	gap: 0.65rem;
+	height: 3.4rem;
+	background: var( --vh-clay ) !important;
+	color: var( --vh-bg ) !important;
+	border: 2px solid var( --vh-clay ) !important;
+	padding: 0 2rem !important;
+}
+.vh-add-to-cart .single_add_to_cart_button:hover {
+	background: var( --vh-green ) !important;
+	color: var( --vh-bg ) !important;
+	border-color: var( --vh-green ) !important;
+}
+.vh-add-to-cart .single_add_to_cart_button::before {
+	content: "";
+	width: 1.2rem;
+	height: 1.2rem;
+	flex-shrink: 0;
+	background-color: currentColor;
+	-webkit-mask: var( --vh-cart-icon ) no-repeat center / contain;
+	mask: var( --vh-cart-icon ) no-repeat center / contain;
+}
+/* meta row */
+.vh-product-meta-row {
+	gap: 0.4rem 1.5rem !important;
+	padding-top: 1.5rem;
+	margin-top: 0.5rem;
+	border-top: 1px solid color-mix( in srgb, var( --vh-ink ) 10%, transparent );
+	font-size: 0.9rem;
+	color: color-mix( in srgb, var( --vh-ink ) 65%, transparent );
+}
+.vh-product-meta-row a {
+	color: color-mix( in srgb, var( --vh-ink ) 65%, transparent );
+	transition: color 0.2s ease;
+}
+.vh-product-meta-row a:hover {
+	color: var( --vh-clay );
+}
+/* description / reviews tabs */
+.vh-product-details .woocommerce-tabs {
+	border-top: 1px solid color-mix( in srgb, var( --vh-ink ) 10%, transparent );
+	padding-top: var( --vh-section-padding-y-compact );
+}
+.vh-product-details ul.tabs {
+	display: flex;
+	gap: 2rem;
+	list-style: none;
+	margin: 0 0 2rem;
+	padding: 0;
+	border-bottom: 1px solid color-mix( in srgb, var( --vh-ink ) 10%, transparent );
+}
+/* WooCommerce's own "is-style-minimal" product-details CSS and its
+   legacy classic .woocommerce-tabs CSS both set border-width on these
+   <li>s at higher specificity than a plain class selector here can beat
+   normally — force all sides to zero and move the underline onto the
+   <a> instead, with !important so it wins regardless of which of those
+   two stylesheets the cascade happens to prefer. */
+.vh-product-details ul.tabs li {
+	margin: 0 !important;
+	padding: 0 !important;
+	background: transparent !important;
+	border-width: 0 !important;
+	border-radius: 0 !important;
+}
+.vh-product-details ul.tabs li a {
+	display: inline-block;
+	padding-bottom: 1rem;
+	font-family: var( --wp--preset--font-family--display );
+	font-size: 1.1rem;
+	font-weight: 600;
+	color: color-mix( in srgb, var( --vh-ink ) 55%, transparent ) !important;
+	border-bottom: 2px solid transparent !important;
+	transition: color 0.2s ease;
+}
+.vh-product-details ul.tabs li.active a,
+.vh-product-details ul.tabs li a:hover {
+	color: var( --vh-green ) !important;
+	border-bottom-color: var( --vh-clay ) !important;
+}
+.vh-product-details .woocommerce-Tabs-panel h2 {
+	font-size: 1.6rem;
+	color: var( --vh-green );
+	margin-bottom: 1rem;
+}
+.vh-product-details .woocommerce-Tabs-panel p {
+	color: color-mix( in srgb, var( --vh-ink ) 80%, transparent );
+	max-width: 65ch;
+	margin-bottom: 0;
+}
+.vh-product-details #reviews .comment-form input,
+.vh-product-details #reviews .comment-form textarea {
+	border: 1px solid color-mix( in srgb, var( --vh-ink ) 14%, transparent );
+	border-radius: 12px;
+	background: var( --vh-bg );
+	color: var( --vh-ink );
+	font-family: var( --wp--preset--font-family--body );
+	padding: 0.6rem 0.9rem;
+}
+.vh-product-details #reviews .comment-form textarea {
+	border-radius: 16px;
 }
 
 /* === shop archive === */

@@ -49,3 +49,42 @@
 		} );
 	}
 }() );
+
+// Single product page: live "Total" box (unit price × quantity), next to
+// the quantity stepper. The stepper's +/- buttons update the quantity
+// through the Interactivity API's own reactive state rather than firing a
+// native input/change event, so a plain 'input' listener alone would miss
+// clicks on them — a click listener with a next-frame re-read covers both.
+( function () {
+	document.querySelectorAll( '.vh-line-total' ).forEach( function ( box ) {
+		var group = box.closest( '.vh-add-to-cart' );
+		var amountEl = box.querySelector( '.vh-line-total__amount' );
+		var priceEl = document.querySelector( '.vh-product-details-col .wc-block-components-product-price .woocommerce-Price-amount' );
+		if ( ! group || ! amountEl || ! priceEl ) {
+			return;
+		}
+
+		var qtyInput = group.querySelector( '.wc-block-components-quantity-selector__input' );
+		if ( ! qtyInput ) {
+			return;
+		}
+
+		var currencySymbolEl = priceEl.querySelector( '.woocommerce-Price-currencySymbol' );
+		var currencySymbol = currencySymbolEl ? currencySymbolEl.textContent : '$';
+		var unitPrice = parseFloat( priceEl.textContent.replace( /[^0-9.]/g, '' ) ) || 0;
+
+		function update() {
+			var qty = parseFloat( qtyInput.value ) || 0;
+			amountEl.textContent = currencySymbol + ( unitPrice * qty ).toFixed( 2 );
+		}
+
+		update();
+		qtyInput.addEventListener( 'input', update );
+		qtyInput.addEventListener( 'change', update );
+		group.addEventListener( 'click', function ( event ) {
+			if ( event.target.closest( '.wc-block-components-quantity-selector__button' ) ) {
+				requestAnimationFrame( update );
+			}
+		} );
+	} );
+}() );

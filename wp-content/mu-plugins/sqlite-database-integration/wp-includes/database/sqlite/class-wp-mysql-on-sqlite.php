@@ -14,7 +14,7 @@
  *
  * The driver requires PDO with the SQLite driver, and the PCRE engine.
  */
-class WP_PDO_MySQL_On_SQLite extends PDO {
+class WP_MySQL_On_SQLite extends PDO {
 	/**
 	 * The path to the MySQL SQL grammar file.
 	 */
@@ -632,8 +632,17 @@ class WP_PDO_MySQL_On_SQLite extends PDO {
 	 *
 	 * Set up an SQLite connection and the MySQL-on-SQLite driver.
 	 *
-	 * @param WP_SQLite_Connection $connection A SQLite database connection.
-	 * @param string               $db_name    The database name.
+	 * @param string      $dsn      MySQL-on-SQLite DSN containing the SQLite path and database name.
+	 * @param string|null $username Optional. Ignored by this driver.
+	 * @param string|null $password Optional. Ignored by this driver.
+	 * @param array       $options  {
+	 *     Optional driver options.
+	 *
+	 *     @type int             $mysql_version Optional. MySQL version to emulate. Default 80038.
+	 *     @type PDO|null        $pdo           Optional. Existing SQLite PDO connection.
+	 *     @type string|null     $journal_mode  Optional. SQLite journal mode. Default 'WAL'.
+	 *     @type string|int|null $synchronous   Optional. SQLite synchronous setting.
+	 * }
 	 *
 	 * @throws WP_SQLite_Driver_Exception When the driver initialization fails.
 	 */
@@ -789,11 +798,12 @@ class WP_PDO_MySQL_On_SQLite extends PDO {
 	 *
 	 * A single MySQL query can be translated into zero or more SQLite queries.
 	 *
-	 * @param string $query              Full SQL statement string.
-	 * @param int    $fetch_mode         PDO fetch mode. Default is PDO::FETCH_OBJ.
-	 * @param array  ...$fetch_mode_args Additional fetch mode arguments.
+	 * @param string   $query              Full SQL statement string.
+	 * @param int|null $fetch_mode         Optional. PDO fetch mode. Defaults to the configured
+	 *                                     PDO::ATTR_DEFAULT_FETCH_MODE.
+	 * @param mixed    ...$fetch_mode_args Additional fetch mode arguments.
 	 *
-	 * @return mixed Return value, depending on the query type.
+	 * @return PDOStatement|false PDO statement, or false when the fetch mode is invalid on PHP < 8.1.
 	 *
 	 * @throws WP_SQLite_Driver_Exception When the query execution fails.
 	 */
@@ -1000,6 +1010,75 @@ class WP_PDO_MySQL_On_SQLite extends PDO {
 	}
 
 	/**
+	 * PDO API: Quote a string for use in a MySQL query.
+	 *
+	 * @param  string $string The string to quote.
+	 * @param  int    $type   The PDO parameter type.
+	 * @return string         The quoted string.
+	 */
+	#[ReturnTypeWillChange]
+	// phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.stringFound
+	public function quote( $string, $type = PDO::PARAM_STR ) {
+		// Mirror PDO\MySQL::quote() value validation.
+		if (
+			is_array( $string )
+			|| is_resource( $string )
+			|| ( is_object( $string ) && ! method_exists( $string, '__toString' ) )
+		) {
+			$given_type = is_object( $string ) ? get_class( $string ) : gettype( $string );
+			throw new TypeError(
+				sprintf(
+					'WP_MySQL_On_SQLite::quote(): Argument #1 ($string) must be of type string, %s given',
+					$given_type
+				)
+			);
+		}
+		$string = (string) $string;
+
+		// Handle binary and national character prefixes.
+		$prefix = '';
+		if ( PDO::PARAM_LOB === ( $type & PDO::PARAM_LOB ) ) {
+			$prefix = '_binary';
+		} elseif (
+			PDO::PARAM_STR_NATL === ( $type & PDO::PARAM_STR_NATL )
+			&& PDO::PARAM_STR_CHAR !== ( $type & PDO::PARAM_STR_CHAR )
+		) {
+			$prefix = 'N';
+		}
+
+		/*
+		 * PDO uses mysqlnd by default and can alternatively use libmysqlclient.
+		 * This escaped character mapping matches the escaping of both drivers.
+		 * Their malformed multibyte sequence handling is not needed for UTF-8.
+		 *
+		 * @see https://github.com/php/php-src/blob/dd6e76cce27aaa0ed9f7520648ed1081dfb6af36/ext/mysqlnd/mysqlnd_charset.c#L905
+		 * @see https://github.com/mysql/mysql-server/blob/dc86e412f18b36ce271f791026714e8caa0ec919/mysys/charset.cc#L413
+		 *
+		 * We can't use "addcslashes()" here, because it has an unusual handling
+		 * of the ASCII NULL and Control+Z characters, escaping them to "\000"
+		 * and "\032" instead of "\0" and "\Z", respectively.
+		 *
+		 * It is important to use "strtr()" and not "str_replace()", because
+		 * "str_replace()" applies replacements one after another, modifying
+		 * intermediate changes rather than just the original string:
+		 *
+		 *   - str_replace( [ 'a', 'b' ], [ 'b', 'c' ], 'ab' ); // 'cc' (bad)
+		 *   - strtr( 'ab', [ 'a' => 'b', 'b' => 'c' ] );       // 'bc' (good)
+		 */
+		$backslash    = chr( 92 );
+		$replacements = array(
+			chr( 0 )   => $backslash . '0',        // An ASCII NULL character (\0).
+			chr( 10 )  => $backslash . 'n',        // A newline (linefeed) character (\n).
+			chr( 13 )  => $backslash . 'r',        // A carriage return character (\r).
+			$backslash => $backslash . $backslash, // A backslash character (\).
+			"'"        => $backslash . "'",        // A single quote character (').
+			'"'        => $backslash . '"',        // A double quote character (").
+			chr( 26 )  => $backslash . 'Z',        // An ASCII 26 (Control+Z) character.
+		);
+		return $prefix . "'" . strtr( $string, $replacements ) . "'";
+	}
+
+	/**
 	 * PDO API: Begin a transaction.
 	 *
 	 * @return bool True on success, false on failure.
@@ -1011,15 +1090,6 @@ class WP_PDO_MySQL_On_SQLite extends PDO {
 		}
 		$this->begin_user_transaction();
 		return true;
-	}
-
-	/**
-	 * A temporary alias for back compatibility.
-	 *
-	 * @see self::beginTransaction()
-	 */
-	public function begin_transaction(): void {
-		$this->beginTransaction();
 	}
 
 	/**
@@ -2146,10 +2216,24 @@ class WP_PDO_MySQL_On_SQLite extends PDO {
 						)->fetchAll( PDO::FETCH_COLUMN );
 					}
 
-					$matched_tables          = array_merge( $matched_temporary_tables, $matched_persistent_tables );
-					$updates_multiple_tables = count( $matched_tables ) > 1;
-					if ( 1 === count( $matched_tables ) ) {
-						$table_or_alias = $matched_tables[0];
+					$matched_tables  = array_merge( $matched_temporary_tables, $matched_persistent_tables );
+					$matched_aliases = array();
+					foreach ( $table_alias_map as $alias => $data ) {
+						// Derived tables do not have a table name.
+						if ( null === $data['table_name'] ) {
+							continue;
+						}
+
+						foreach ( $matched_tables as $matched_table ) {
+							if ( 0 === strcasecmp( $data['table_name'], $matched_table ) ) {
+								$matched_aliases[] = $alias;
+								break;
+							}
+						}
+					}
+					$updates_multiple_tables = count( $matched_aliases ) > 1;
+					if ( 1 === count( $matched_aliases ) ) {
+						$table_or_alias = $matched_aliases[0];
 					} else {
 						break;
 					}
@@ -3523,7 +3607,14 @@ class WP_PDO_MySQL_On_SQLite extends PDO {
 
 		if ( WP_MySQL_Lexer::SESSION_SYMBOL === $type ) {
 			if ( 'sql_mode' === $name ) {
-				$modes                  = explode( ',', strtoupper( $value ) );
+				// MySQL ignores trailing ASCII spaces in SQL mode names.
+				$modes = explode( ',', strtoupper( $value ) );
+				foreach ( $modes as $i => $mode ) {
+					$modes[ $i ] = rtrim( $mode, ' ' );
+				}
+				if ( in_array( 'NO_BACKSLASH_ESCAPES', $modes, true ) ) {
+					throw $this->new_not_supported_exception( "SQL mode 'NO_BACKSLASH_ESCAPES'" );
+				}
 				$this->active_sql_modes = $modes;
 			} else {
 				$this->session_system_variables[ $name ] = $value;
@@ -4073,10 +4164,10 @@ class WP_PDO_MySQL_On_SQLite extends PDO {
 		/*
 		 * Translate datetime literals.
 		 *
-		 * Process only strings that could possibly represent a datetime
-		 * literal ("YYYY-MM-DDTHH:MM:SS", "YYYY-MM-DDTHH:MM:SSZ", etc.).
+		 * Process only strings that could possibly represent a date or datetime
+		 * literal ("YYYY-M-D", "YYYY-MM-DDTHH:MM:SSZ", etc.).
 		 */
-		if ( strlen( $value ) >= 19 && is_numeric( $value[0] ) ) {
+		if ( strlen( $value ) >= 8 && is_numeric( $value[0] ) ) {
 			$value = $this->translate_datetime_literal( $value );
 		}
 
@@ -4211,7 +4302,7 @@ class WP_PDO_MySQL_On_SQLite extends PDO {
 		 * When the ORDER BY clause is present, we need to disambiguate the item
 		 * list and make sure they don't cause an "ambiguous column name" error.
 		 *
-		 * @see WP_SQLite_Driver::disambiguate_item()
+		 * @see WP_MySQL_On_SQLite::disambiguate_item()
 		 */
 		$disambiguated_order_list = array();
 		$order_clause             = $node->get_first_child_node( 'orderClause' );
@@ -4279,7 +4370,7 @@ class WP_PDO_MySQL_On_SQLite extends PDO {
 		 * When the GROUP BY or HAVING clause is present, we need to disambiguate
 		 * the items to ensure they don't cause an "ambiguous column name" error.
 		 *
-		 * @see WP_SQLite_Driver::disambiguate_item()
+		 * @see WP_MySQL_On_SQLite::disambiguate_item()
 		 */
 		$group_by_clause = null;
 		$having_clause   = null;
@@ -4681,7 +4772,11 @@ class WP_PDO_MySQL_On_SQLite extends PDO {
 	 */
 	private function translate_datetime_literal( string $value ): string {
 		/*
-		 * The code below converts the date format to one preferred by SQLite.
+		 * Normalize MySQL date and datetime literals for SQLite.
+		 *
+		 * MySQL accepts date and time components without zero padding. SQLite
+		 * stores temporal values as text, so they must be normalized for lexical
+		 * comparisons and SQLite date functions to work correctly.
 		 *
 		 * MySQL accepts ISO 8601 date strings:        'YYYY-MM-DDTHH:MM:SSZ'
 		 * SQLite prefers a slightly different format: 'YYYY-MM-DD HH:MM:SS'
@@ -4704,8 +4799,25 @@ class WP_PDO_MySQL_On_SQLite extends PDO {
 		 * which is true in the unit test suite, but there could also be a timezone offset
 		 * like "+00:00" or "+01:00". We could add support for that later if needed.
 		 */
-		if ( 1 === preg_match( '/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})Z$/', $value, $matches ) ) {
-			$value = $matches[1] . ' ' . $matches[2];
+		if (
+			1 === preg_match(
+				'/^(\d{4})-(\d{1,2})-(\d{1,2})(?:([ T])(\d{1,2}):(\d{1,2}):(\d{1,2})(Z)?)?$/',
+				$value,
+				$matches
+			)
+		) {
+			$value = sprintf( '%04d-%02d-%02d', $matches[1], $matches[2], $matches[3] );
+			if ( isset( $matches[4] ) && '' !== $matches[4] ) {
+				$is_iso_8601 = 'T' === $matches[4] && 'Z' === ( $matches[8] ?? '' );
+				$value      .= sprintf(
+					'%s%02d:%02d:%02d%s',
+					$is_iso_8601 ? ' ' : $matches[4],
+					$matches[5],
+					$matches[6],
+					$matches[7],
+					$is_iso_8601 ? '' : ( $matches[8] ?? '' )
+				);
+			}
 		}
 
 		/*
@@ -5767,7 +5879,7 @@ class WP_PDO_MySQL_On_SQLite extends PDO {
 	 *        consider column references in forms like "db.table.column".
 	 *
 	 * @param  array          $disambiguation_map The SELECT item disambiguation map (column name => array of select items).
-	 *                                            @see WP_SQLite_Driver::create_select_item_disambiguation_map()
+	 *                                            @see WP_MySQL_On_SQLite::create_select_item_disambiguation_map()
 	 * @param  WP_Parser_Node $expr               The expression AST node or subnode.
 	 * @return string|null                        The disambiguated and translated expression;
 	 *                                            null when the expression cannot be disambiguated.
@@ -5806,7 +5918,7 @@ class WP_PDO_MySQL_On_SQLite extends PDO {
 	 * Create a SELECT item disambiguation map from a SELECT item list for use
 	 * with the ORDER BY, GROUP BY, and HAVING clause disambiguation algorithm.
 	 *
-	 * @see WP_SQLite_Driver::disambiguate_item()
+	 * @see WP_MySQL_On_SQLite::disambiguate_item()
 	 *
 	 * @param  WP_Parser_Node $select_item_list The "selectItemList" AST node.
 	 * @return array                            The SELECT item disambiguation map (column name => array of select items).

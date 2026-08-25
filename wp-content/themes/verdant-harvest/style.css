@@ -4,7 +4,7 @@ Description: A custom block theme.
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.2
-Version: 0.1.0
+Version: 0.1.8
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: verdant-harvest
@@ -841,7 +841,58 @@ h1, h2, h3, h4 {
 .vh-product-details #reviews .comment-form textarea {
 	border-radius: 16px;
 }
-
+/* Related products: this block has no layout/wideSize set (unlike the
+   homepage sections), so it stretches full-width and inflates card size;
+   constrain it to the theme's standard wideSize to match. */
+.vh-related-products .wp-block-woocommerce-product-collection {
+	max-width: 960px;
+	margin-inline: auto;
+}
+/* Related products: smaller cards than the main shop/home grid so this
+   section reads like the compact category cards, not another full shop row. */
+.vh-related-products .wc-block-product-template {
+	gap: 1.25rem;
+	justify-content: center;
+}
+/* WooCommerce's own flex-basis math assumes its own default gap (see the
+   shop grid comment below), so our larger 1.25rem gap here was making it
+   miscalculate card width and wrap this 4-item row into 3+1. Set an explicit
+   basis for our own gap so all 4 fit on one row; combined with
+   justify-content:center above, a short last row centers instead of
+   hugging the left edge. */
+.vh-related-products li.product,
+.vh-related-products .wc-block-product {
+	padding: 0.6rem 0.6rem 0.9rem;
+	box-sizing: border-box;
+	flex: 0 1 calc( 25% - 0.9375rem );
+}
+@media ( max-width: 599px ) {
+	.vh-related-products li.product,
+	.vh-related-products .wc-block-product {
+		flex-basis: 100%;
+	}
+}
+@media ( min-width: 600px ) and ( max-width: 1023px ) {
+	.vh-related-products li.product,
+	.vh-related-products .wc-block-product {
+		flex-basis: calc( 50% - 0.625rem );
+	}
+}
+.vh-related-products .wp-block-woocommerce-product-title,
+.vh-related-products .wc-block-components-product-title {
+	font-size: 1rem;
+	margin-top: 0.6rem;
+}
+.vh-related-products .wc-block-components-product-price,
+.vh-related-products .price {
+	font-size: 0.9rem;
+}
+.vh-related-products .wp-block-woocommerce-product-button .wp-element-button,
+.vh-related-products .wc-block-components-product-button .wp-element-button {
+	margin-top: 0.2rem;
+	font-size: 0.8rem;
+	padding: 0.5rem 1.1rem;
+}
 /* === shop archive === */
 .vh-shop-page {
 	padding-top: 2.5rem;
@@ -1127,6 +1178,257 @@ h1, h2, h3, h4 {
 	background: var( --vh-clay );
 	color: var( --vh-bg );
 }
+/* === cart === */
+/* Covers both the cart page (woocommerce/cart block) and the mini-cart
+   drawer in the header. They share the .wc-block-cart-item__* markup, so
+   the item rules below are deliberately unscoped and style both at once;
+   anything specific to one surface is grouped further down.
+
+   WooCommerce ships these with 4px corners and a hairline grey border,
+   which is the main thing that made the cart read as un-themed next to
+   the 12px product-card thumbnails and pill buttons used everywhere else. */
+
+/* thumbnails: match the shop grid's product images exactly — same 12px
+   radius, same square crop. The radius has to go on the <a> wrapper too:
+   WooCommerce gives it overflow:hidden and its own 4px radius, so setting
+   it on the <img> alone leaves the old corners visible on top. */
+.wc-block-cart-item__image > a,
+.wc-block-cart-item__image img {
+	border-radius: 12px;
+}
+/* Sized to fill the row's content height rather than sitting as a small
+   square with dead space under it. The <a> and <img> both go display:block —
+   as inline elements they added a ~10px line-box descender below the image,
+   which read as the row being bottom-heavy.
+
+   `:not( [hidden] )` is load-bearing: the cell contains a SECOND <img> that
+   the Interactivity API toggles for catalog-hidden products. A bare
+   `display: block` overrides its hidden attribute and renders both images
+   stacked. */
+.wc-block-cart-item__image > a {
+	display: block;
+}
+.wc-block-cart-item__image img:not( [hidden] ) {
+	display: block;
+	box-sizing: border-box;
+	width: 100%;
+	height: auto;
+	aspect-ratio: 1;
+	object-fit: cover;
+	border: 1px solid color-mix( in srgb, var( --vh-ink ) 8%, transparent );
+}
+/* Two different layouts to size. The cart page renders real table rows, so
+   the cell width drives it. The mini-cart drawer (and either surface at
+   narrow widths) switches the row to CSS grid with a fixed 80px first track,
+   which the image cannot exceed without eating the gutter and colliding with
+   the title — so the track is widened instead. 16px of each track is
+   WooCommerce's own padding-right gutter. */
+.wp-block-woocommerce-cart .wc-block-cart-item__image {
+	width: 120px;
+}
+.wp-block-woocommerce-cart table.wc-block-cart-items .wc-block-cart-items__row {
+	grid-template-columns: 136px 132px;
+}
+.wc-block-mini-cart__drawer table.wc-block-cart-items .wc-block-cart-items__row {
+	grid-template-columns: 112px 132px;
+}
+/* On narrow screens the cart page also drops to the grid layout, where a
+   136px image track leaves too little for the product and total columns —
+   the row overflows its container and the price escapes the gutter. Step the
+   image down to the drawer's size, which fits with room to spare. */
+@media ( max-width: 781px ) {
+	.wp-block-woocommerce-cart .wc-block-cart-item__image {
+		width: 96px;
+	}
+	.wp-block-woocommerce-cart table.wc-block-cart-items .wc-block-cart-items__row {
+		grid-template-columns: 112px 132px;
+	}
+}
+
+/* product title: same display-face treatment as the product cards. */
+.wc-block-components-product-name {
+	font-family: var( --wp--preset--font-family--display );
+	font-weight: 600;
+	color: var( --vh-green );
+	text-decoration: none;
+}
+.wc-block-components-product-name:hover {
+	color: var( --vh-clay );
+}
+.wc-block-components-product-metadata {
+	color: color-mix( in srgb, var( --vh-ink ) 65%, transparent );
+}
+/* line total in clay, matching how price is emphasised on product cards. */
+.wc-block-cart-item__total .wc-block-components-product-price__value,
+.wc-block-cart-item__prices .wc-block-components-product-price__value {
+	color: var( --vh-clay );
+	font-weight: 600;
+}
+
+/* quantity stepper: WooCommerce's 4px/107px box becomes a pill, echoing
+   the theme's button radius (theme.json sets 999px) and the outlined
+   "View my cart" button sitting just below it in the drawer. Kept
+   horizontal — this is a different control from the vertical chevron
+   stepper on the single-product page (see .vh-add-to-cart above), so it
+   is styled to match the buttons around it rather than that one. */
+.wc-block-components-quantity-selector {
+	border-radius: 999px;
+	border-color: color-mix( in srgb, var( --vh-ink ) 18%, transparent );
+	background: var( --vh-bg );
+	overflow: hidden;
+}
+.wc-block-components-quantity-selector__button {
+	color: var( --vh-green );
+	background: transparent;
+	transition: background-color 0.2s ease, color 0.2s ease;
+}
+.wc-block-components-quantity-selector__button:hover:not( :disabled ) {
+	background: var( --vh-sand );
+	color: var( --vh-green );
+}
+.wc-block-components-quantity-selector__button:disabled {
+	opacity: 0.35;
+}
+/* WooCommerce draws its focus ring as `box-shadow: inset 0 0 1px 1px
+   currentColor`, which sticks around after a mouse click and reads as a
+   stray green square inside the pill. Drop it for pointer focus only —
+   :focus-visible still gets the ring, so keyboard users keep an indicator
+   (and since these buttons are green, currentColor already tints it to
+   match the theme). */
+.wc-block-components-quantity-selector .wc-block-components-quantity-selector__button:focus:not( :focus-visible ) {
+	box-shadow: none;
+}
+
+/* remove ("trash") control: muted until hovered, then clay like other
+   destructive/secondary affordances. */
+.wc-block-cart-item__remove-link,
+.wc-block-cart-items .wc-block-cart-item__remove-link {
+	color: color-mix( in srgb, var( --vh-ink ) 55%, transparent );
+	transition: color 0.2s ease;
+}
+.wc-block-cart-item__remove-link:hover {
+	color: var( --vh-clay );
+}
+
+/* row separators: the theme's card-border tint rather than WooCommerce grey. */
+.wc-block-cart-items__row,
+.wc-block-cart-items__header {
+	border-color: color-mix( in srgb, var( --vh-ink ) 10%, transparent ) !important;
+}
+.wc-block-cart-items__header {
+	color: color-mix( in srgb, var( --vh-ink ) 60%, transparent );
+}
+
+/* --- cart & checkout page gutters --- */
+/* WooCommerce ships its own page-cart.html and page-checkout.html block
+   templates, so neither page passes through the theme's page.html and neither
+   gets the .vh-page-content wrapper that gives every other page its 1.5rem of
+   side padding. theme.json defines no root padding either, so the <main>
+   element's has-global-padding class resolves to 0 — leaving headings, item
+   rows and totals flush against the viewport edge, with prices clipping the
+   right side. Restore the same gutter the rest of the site uses.
+
+   Deliberately not inside a mobile media query: the content is alignwide
+   (capped at 1200px), so it runs edge-to-edge at any viewport narrower than
+   that, not just on phones. Above 1200px the centring already leaves margin
+   and this padding changes nothing.
+
+   Checkout's <header> needs it too: that page swaps the theme's own
+   .vh-header (which carries its own padding) for WooCommerce's stripped-down
+   checkout header, so the site title would otherwise sit flush at 0 while
+   everything below it is inset. */
+.woocommerce-cart main.wp-block-group,
+.woocommerce-checkout main.wp-block-group,
+.woocommerce-checkout header.wp-block-group {
+	padding-left: var( --wp--preset--spacing--30 );
+	padding-right: var( --wp--preset--spacing--30 );
+}
+
+/* --- checkout order summary --- */
+/* These thumbnails are a different block from the cart's — a bare <img>
+   beside a quantity badge, with no anchor wrapper — so the cart image rules
+   above do not reach them and they render square. 8px rather than the cart's
+   12px: at 48px these are less than half the size, and 12px on so small a
+   thumb reads as a lozenge rather than a softened square. */
+.wc-block-components-order-summary-item__image img {
+	border-radius: 8px;
+	border: 1px solid color-mix( in srgb, var( --vh-ink ) 8%, transparent );
+}
+
+/* --- cart page only --- */
+/* Breathing room above the "Cart" title. WooCommerce's page-cart.html has no
+   .vh-page-head band, and the sitewide rule zeroing block-gap margins between
+   top-level blocks (see the top of this file) leaves the heading butted
+   directly against the sticky header — measured gap was 0px. Reuse the
+   theme's section rhythm token so this matches the space above every other
+   page title and steps down to 64px on small screens on its own.
+
+   Top only: the cart block brings its own bottom spacing before the footer.
+   Checkout is deliberately excluded — it leads with the order summary rather
+   than a page title and already has its own spacing. */
+.woocommerce-cart main.wp-block-group {
+	padding-top: var( --vh-section-padding-y );
+}
+/* Totals become a sand card, the same surface treatment as the product
+   cards and story panel, so the column reads as part of the design system
+   instead of a bare list. Scoped to the order-summary block rather than
+   .wc-block-cart__sidebar: that class sits on the same element as
+   .wc-block-components-sidebar and also wraps the checkout button, which
+   is meant to stay a standalone pill on the page background. */
+.wc-block-cart__sidebar .wp-block-woocommerce-cart-order-summary-block {
+	background: var( --vh-sand );
+	border: 1px solid color-mix( in srgb, var( --vh-ink ) 8%, transparent );
+	border-radius: 18px;
+	padding: 1.5rem;
+}
+/* the card supplies the separation, so drop the block's own divider rules */
+.wc-block-cart__sidebar .wp-block-woocommerce-cart-order-summary-block .wc-block-components-totals-wrapper {
+	border-color: color-mix( in srgb, var( --vh-ink ) 10%, transparent );
+}
+.wc-block-cart__totals-title {
+	color: color-mix( in srgb, var( --vh-ink ) 60%, transparent );
+}
+.wc-block-cart__submit-button {
+	border-radius: 999px;
+}
+
+/* --- mini-cart drawer only --- */
+.wc-block-mini-cart__drawer .wc-block-components-drawer__content {
+	background: var( --vh-bg );
+}
+.wc-block-mini-cart__title {
+	font-family: var( --wp--preset--font-family--display );
+	color: var( --vh-green );
+}
+/* footer sits on sand so the subtotal + actions read as a grounded tray,
+   matching the way the newsletter and story panels use the sand tone. */
+.wc-block-mini-cart__footer {
+	background: var( --vh-sand );
+	border-top: 1px solid color-mix( in srgb, var( --vh-ink ) 10%, transparent );
+}
+.wc-block-mini-cart__footer-subtotal .wc-block-components-totals-item__value {
+	color: var( --vh-clay );
+	font-weight: 600;
+}
+/* "View my cart": ghost green by default, filled green on hover — the
+   secondary counterpart to the filled terracotta "Go to checkout" beside
+   it. WooCommerce paints the outline as an inset box-shadow rather than a
+   real border and hardcodes #1e1e1e/#fff on hover, so both are overridden
+   here; the selectors carry the extra classes needed to outrank its own
+   :hover rule. currentColor drives the ring, so setting `color` is what
+   actually tints the outline. */
+.wc-block-mini-cart__footer-actions .wc-block-components-button.wc-block-mini-cart__footer-cart.is-style-outline {
+	background-color: transparent;
+	color: var( --vh-green );
+	box-shadow: inset 0 0 0 1.5px currentColor;
+}
+.wc-block-mini-cart__footer-actions .wc-block-components-button.wc-block-mini-cart__footer-cart.is-style-outline:hover,
+.wc-block-mini-cart__footer-actions .wc-block-components-button.wc-block-mini-cart__footer-cart.is-style-outline:focus {
+	background-color: var( --vh-green );
+	color: var( --vh-bg );
+	box-shadow: inset 0 0 0 1.5px var( --vh-green );
+}
+
 /* === responsive === */
 @media ( max-width: 781px ) {
 	.vh-hero .wp-block-cover__inner-container {

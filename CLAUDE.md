@@ -46,6 +46,12 @@ There are no JS/PHP build tooling, linting, or test commands at the project root
 
 **Serving / URLs:** The site lives in a *subdirectory* of the MAMP docroot, so `siteurl` and `home` are `http://localhost:8888/organic-shop` and `.htaccess` at the project root carries `RewriteBase /organic-shop/`. Permalinks are `/%postname%/` and depend on that `.htaccess` — without it every URL except the homepage 404s. If the site is ever moved or the port changes, update both options *and* `.htaccess`; use `wp search-replace` (serialization-safe) rather than raw SQL for any URL rewrite.
 
+**Never write root-relative URLs in block markup.** Because the site is in a subdirectory, `src="/wp-content/uploads/x.jpg"` and `href="/shop/"` resolve to `localhost:8888/...` — outside the site — and silently 404. Hand-authored markup here originally used that form (it worked under Studio, which served from the docroot) and it broke on the move. Two conventions now apply, and new markup must follow them:
+- **Database content** (pages, templates, template parts): absolute URLs, e.g. `http://localhost:8888/organic-shop/shop/`. This matches what WordPress stores for its own URLs and means `wp search-replace` catches them on a future move.
+- **Theme files** (`parts/*.html`, `templates/*.html`): root-relative *with* the subdirectory prefix, e.g. `/organic-shop/shop/`. These are version-controlled, so the host and port stay out of git — but `wp search-replace` does not touch files, so a move needs a manual `sed` over `wp-content/themes/verdant-harvest/`.
+
+Watch for the two different spellings when grepping: plain attributes (`href="/shop/"`) and navigation-link block JSON (`"url":"/shop/"`). A grep for one will miss the other.
+
 `wp-content/mu-plugins/99-studio-loader.php` is a leftover from Studio. It points at a temp directory that no longer exists, so its loader loop is a no-op, but it still sets `WP_ENVIRONMENT_TYPE` to `local` and defines the placeholder `DB_*` constants as a fallback. Harmless; leave it unless you're deliberately cleaning up.
 
 **Active theme — `wp-content/themes/verdant-harvest/`:** A custom block theme (FSE, `theme.json` v3, no classic PHP templates). Structure:
